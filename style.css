@@ -1,0 +1,380 @@
+/* ===== ПЕРЕМЕННЫЕ ===== */
+:root {
+  --bg: #050505;
+  --text: #f5f5f7;
+  --text-2: rgba(235, 235, 245, .6);
+  --line: rgba(255, 255, 255, .09);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, system-ui, sans-serif;
+}
+
+/* ===== БАЗОВЫЕ СТИЛИ ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--bg);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+/* ===== ФОНОВЫЕ СЛОИ ===== */
+#meteor-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: -2;
+  pointer-events: none;
+  background-color: transparent;
+}
+
+#webgl-bg-container {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  background-color: transparent;
+}
+
+.pattern-waves {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ===== СТЕКЛО ===== */
+.glass {
+  background: rgba(20, 20, 22, .45);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+/* ===== АНИМАЦИИ ===== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero h1 { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+.hero p { animation: fadeInUp 0.8s ease-out 0.15s forwards; opacity: 0; }
+
+.card { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+.card:nth-child(1) { animation-delay: 0.3s; }
+.card:nth-child(2) { animation-delay: 0.4s; }
+.card:nth-child(3) { animation-delay: 0.5s; }
+.card:nth-child(4) { animation-delay: 0.6s; }
+
+/* ===== НАВИГАЦИЯ ===== */
+.header-wrapper { 
+  position: sticky; 
+  top: 16px; 
+  z-index: 10; 
+  display: flex; 
+  justify-content: center; 
+  padding: 0 16px; 
+}
+
+nav { 
+  display: flex; 
+  align-items: center; 
+  gap: 4px; 
+  padding: 5px; 
+  border-radius: 999px; 
+  animation: fadeInUp 0.6s ease-out forwards; 
+  opacity: 0;
+}
+
+.logo-nav {
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+  padding: 0 16px 0 12px;
+  color: #fff; 
+  font-weight: 600; 
+  font-size: 15px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  margin-right: 4px;
+  text-decoration: none;
+}
+
+.logo-nav .i { width: 18px; height: 18px; }
+
+nav a {
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px;
+  padding: 9px 18px; 
+  border-radius: 999px;
+  color: var(--text-2); 
+  text-decoration: none;
+  font-size: 14px; 
+  font-weight: 600;
+  transition: color .3s, background .3s, transform .2s;
+}
+
+nav a:hover { color: var(--text); transform: translateY(-1px); }
+nav a.active { color: var(--text); background: rgba(255,255,255,.12); }
+
+/* ===== ИКОНКИ ===== */
+.i { 
+  width: 20px; 
+  height: 20px; 
+  flex: none; 
+  fill: none; 
+  stroke: currentColor; 
+  stroke-width: 1.8; 
+  stroke-linecap: round; 
+  stroke-linejoin: round; 
+}
+
+/* ===== HERO (ГЛАВНЫЙ ЭКРАН) ===== */
+.hero { 
+  text-align: center; 
+  padding: clamp(90px, 18vh, 170px) 20px clamp(60px, 10vh, 100px); 
+}
+
+.hero h1 {
+  font-size: clamp(38px, 7vw, 72px);
+  font-weight: 700; 
+  letter-spacing: -.035em; 
+  line-height: 1.05;
+  text-wrap: balance;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+.hero p { 
+  margin-top: 18px; 
+  font-size: clamp(16px, 2vw, 19px); 
+  color: var(--text-2); 
+}
+
+/* ===== КАРТОЧКИ ===== */
+.cards-container {
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 14px;
+  width: 100%; 
+  max-width: 880px; 
+  margin: 0 auto; 
+  padding: 0 20px 56px;
+}
+
+.card { 
+  border-radius: 28px; 
+  padding: 26px; 
+  transition: transform 0.3s ease; 
+}
+
+.card.wide { grid-column: 1 / -1; }
+.card:hover { transform: translateY(-3px); }
+
+.card-header { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  margin-bottom: 12px; 
+}
+
+.card-header .i { width: 22px; height: 22px; color: var(--text-2); }
+.card h2 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.card p { color: var(--text-2); font-size: 15px; line-height: 1.55; }
+
+/* ===== СПИСОК ФИЧ (PRIMECORE) ===== */
+.features-list {
+  list-style: none; 
+  margin-top: 16px; 
+  margin-bottom: 16px;
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px;
+}
+
+.features-list li { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  font-size: 14px; 
+  color: var(--text); 
+}
+
+.features-list .i { 
+  width: 16px; 
+  height: 16px; 
+  stroke: #ffffff; 
+  stroke-width: 2.5; 
+}
+
+.version-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 10px; 
+  border-radius: 8px;
+  font-size: 12px; 
+  color: var(--text-2); 
+  font-weight: 600; 
+  margin-top: 8px;
+}
+
+/* ===== СОЦ. СЕТИ (В КАРТОЧКЕ) ===== */
+.socials-block { 
+  margin-top: 18px; 
+  padding-top: 16px; 
+  border-top: 1px solid rgba(255, 255, 255, 0.08); 
+}
+
+.socials-title { 
+  font-size: 13px; 
+  color: var(--text-2); 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em; 
+  font-weight: 600; 
+  margin-bottom: 12px; 
+}
+
+.social-links { display: flex; flex-direction: column; gap: 8px; }
+
+.social-btn {
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  padding: 8px 12px; 
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03); 
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text); 
+  text-decoration: none; 
+  font-size: 14px; 
+  transition: all 0.2s ease;
+}
+
+.social-btn:hover { 
+  background: rgba(255, 255, 255, 0.1); 
+  border-color: rgba(255, 255, 255, 0.15); 
+  transform: translateX(4px); 
+}
+
+.social-btn .i { 
+  width: 18px; 
+  height: 18px; 
+  stroke: var(--text-2); 
+  transition: stroke 0.2s; 
+}
+
+.social-btn:hover .i { stroke: #fff; }
+.social-btn span { font-weight: 500; color: var(--text-2); }
+.social-btn:hover span { color: #fff; }
+
+/* ===== СПИСОК ДРУЗЕЙ ===== */
+.friends-list { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 4px 16px; 
+  margin-top: 6px; 
+}
+
+.friend-item { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  min-width: 0; 
+  padding: 8px 0; 
+  font-size: 15px; 
+  transition: color 0.2s; 
+}
+
+.friend-item:hover { color: #fff; cursor: default; }
+.friend-item span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.friend-avatar {
+  width: 28px; 
+  height: 28px; 
+  border-radius: 50%; 
+  flex: none;
+  display: grid; 
+  place-items: center;
+  background: rgba(255,255,255,.1); 
+  color: var(--text-2);
+  font-size: 12px; 
+  font-weight: 600; 
+  text-transform: uppercase;
+}
+
+/* ===== КАРТОЧКА КЛАНА ===== */
+.clan-desc {
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.clan-desc strong { color: #fff; }
+
+.clan-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.25s ease;
+}
+
+.clan-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* ===== ПОДВАЛ ===== */
+footer {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  gap: 16px; 
+  flex-wrap: wrap;
+  width: calc(100% - 32px); 
+  max-width: 880px; 
+  margin: auto auto 16px;
+  padding: 14px 20px; 
+  border-radius: 999px;
+  font-size: 14px; 
+  color: var(--text-2);
+  animation: fadeInUp 0.8s ease-out 0.6s forwards; 
+  opacity: 0;
+  position: relative; 
+  z-index: 2;
+}
+
+footer strong { color: var(--text); font-weight: 600; }
+
+.footer-socials { display: flex; gap: 16px; }
+.footer-socials a { display: grid; color: var(--text-2); transition: color .2s; }
+.footer-socials a:hover { color: #fff; }
+.footer-socials svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* ===== ФОКУС ===== */
+a:focus-visible { outline: 2px solid #64b5ff; outline-offset: 3px; }
+
+/* ===== АДАПТИВ ===== */
+@media (max-width: 760px) {
+  .cards-container { grid-template-columns: 1fr; padding: 0 16px 40px; }
+  .friends-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 420px) { 
+  .friends-list { grid-template-columns: 1fr; } 
+}
