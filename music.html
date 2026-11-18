@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Musiciant</title>
+<style>
+  :root {
+    --bg: #050505;
+    --text: #f5f5f7;
+    --text-2: rgba(235, 235, 245, .6);
+    --line: rgba(255, 255, 255, .09);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+
+  body {
+    font-family: var(--font);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg);
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  /* --- СЛОЙ С МЕТЕОРИТАМИ (Z-INDEX -2) --- */
+  #meteor-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: -2;
+    pointer-events: none;
+    background-color: transparent;
+  }
+
+  /* --- КОНТЕЙНЕР ДЛЯ WEBGL ВОЛН (Z-INDEX -1) --- */
+  #webgl-bg-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+    background-color: transparent;
+  }
+
+  .pattern-waves {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* --- ОСТАЛЬНОЙ ДИЗАЙН САЙТА --- */
+  .glass {
+    background: rgba(20, 20, 22, .45);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero h1 { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+  .hero p { animation: fadeInUp 0.8s ease-out 0.15s forwards; opacity: 0; }
+  
+  .card { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+  .card:nth-child(1) { animation-delay: 0.3s; }
+  .card:nth-child(2) { animation-delay: 0.4s; }
+  .card:nth-child(3) { animation-delay: 0.5s; }
+  .card:nth-child(4) { animation-delay: 0.6s; } /* Задержка для новой карточки */
+
+  .header-wrapper { position: sticky; top: 16px; z-index: 10; display: flex; justify-content: center; padding: 0 16px; }
+  nav { 
+    display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 999px; 
+    animation: fadeInUp 0.6s ease-out forwards; opacity: 0;
+  }
+  
+  .logo-nav {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px 0 12px;
+    color: #fff; font-weight: 600; font-size: 15px;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    margin-right: 4px;
+    text-decoration: none;
+  }
+  .logo-nav .i { width: 18px; height: 18px; }
+
+  nav a {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 18px; border-radius: 999px;
+    color: var(--text-2); text-decoration: none;
+    font-size: 14px; font-weight: 600;
+    transition: color .3s, background .3s, transform .2s;
+  }
+  nav a:hover { color: var(--text); transform: translateY(-1px); }
+  nav a.active { color: var(--text); background: rgba(255,255,255,.12); }
+
+  .i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Hero */
+  .hero { text-align: center; padding: clamp(90px, 18vh, 170px) 20px clamp(60px, 10vh, 100px); }
+  .hero h1 {
+    font-size: clamp(38px, 7vw, 72px);
+    font-weight: 700; letter-spacing: -.035em; line-height: 1.05;
+    text-wrap: balance;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  .hero p { margin-top: 18px; font-size: clamp(16px, 2vw, 19px); color: var(--text-2); }
+
+  /* Карточки */
+  .cards-container {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    width: 100%; max-width: 880px; margin: 0 auto; padding: 0 20px 56px;
+  }
+  .card { border-radius: 28px; padding: 26px; transition: transform 0.3s ease; }
+  .card.wide { grid-column: 1 / -1; }
+  
+  .card:hover { transform: translateY(-3px); }
+
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .card-header .i { width: 22px; height: 22px; color: var(--text-2); }
+  .card h2 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .card p { color: var(--text-2); font-size: 15px; line-height: 1.55; }
+
+  /* Features List */
+  .features-list {
+    list-style: none; margin-top: 16px; margin-bottom: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .features-list li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); }
+  .features-list .i { width: 16px; height: 16px; stroke: #ffffff; stroke-width: 2.5; }
+  
+  .version-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 12px; color: var(--text-2); font-weight: 600; margin-top: 8px;
+  }
+
+  /* Соц. сети */
+  .socials-block { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+  .socials-title { font-size: 13px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 12px; }
+  .social-links { display: flex; flex-direction: column; gap: 8px; }
+  .social-btn {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text); text-decoration: none; font-size: 14px; transition: all 0.2s ease;
+  }
+  .social-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.15); transform: translateX(4px); }
+  .social-btn .i { width: 18px; height: 18px; stroke: var(--text-2); transition: stroke 0.2s; }
+  .social-btn:hover .i { stroke: #fff; }
+  .social-btn span { font-weight: 500; color: var(--text-2); }
+  .social-btn:hover span { color: #fff; }
+
+  /* Друзья */
+  .friends-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 16px; margin-top: 6px; }
+  .friend-item { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 0; font-size: 15px; transition: color 0.2s; }
+  .friend-item:hover { color: #fff; cursor: default; }
+  .friend-item span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .friend-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    background: rgba(255,255,255,.1); color: var(--text-2);
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+  }
+
+  /* Стили для карточки клана */
+  .clan-desc {
+    color: var(--text-2);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .clan-desc strong { color: #fff; }
+  
+  .clan-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.25s ease;
+  }
+  .clan-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+  }
+
+  /* Подвал */
+  footer {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+    width: calc(100% - 32px); max-width: 880px; margin: auto auto 16px;
+    padding: 14px 20px; border-radius: 999px;
+    font-size: 14px; color: var(--text-2);
+    animation: fadeInUp 0.8s ease-out 0.6s forwards; opacity: 0;
+    position: relative; z-index: 2;
+  }
+  footer strong { color: var(--text); font-weight: 600; }
+  .footer-socials { display: flex; gap: 16px; }
+  .footer-socials a { display: grid; color: var(--text-2); transition: color .2s; }
+  .footer-socials a:hover { color: #fff; }
+  .footer-socials svg { width: 20px; height: 20px; fill: currentColor; }
+
+  a:focus-visible { outline: 2px solid #64b5ff; outline-offset: 3px; }
+
+  @media (max-width: 760px) {
+    .cards-container { grid-template-columns: 1fr; padding: 0 16px 40px; }
+    .friends-list { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 420px) { .friends-list { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+  <!-- 1. СЛОЙ С МЕТЕОРИТАМИ -->
+  <canvas id="meteor-canvas"></canvas>
+
+  <!-- 2. СЛОЙ С WEBGL ВОЛНАМИ -->
+  <div id="webgl-bg-container"></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-music" viewBox="0 0 24 24">
+        <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+      </symbol>
+      <symbol id="i-home" viewBox="0 0 24 24">
+        <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>
+      </symbol>
+      <symbol id="i-people" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="3.2"/><path d="M3 19.5c0-3.2 2.7-5.2 6-5.2s6 2 6 5.2"/><path d="M15.8 4.9a3.2 3.2 0 0 1 0 6.2M18 14.6c1.8.6 3 2.2 3 4.9"/>
+      </symbol>
+      <symbol id="i-person" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>
+      </symbol>
+      <symbol id="i-cube" viewBox="0 0 24 24">
+        <path d="M12 3 4 7.5v9L12 21l8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="M20 6 9 17l-5-5"/>
+      </symbol>
+      <symbol id="i-discord" viewBox="0 0 24 24">
+        <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+      </symbol>
+      <symbol id="i-telegram" viewBox="0 0 24 24">
+        <path d="M21.5 3.3 2.7 10.6c-.8.3-.8 1.4 0 1.7l4.7 1.6 1.8 5.5c.2.7 1.1.9 1.6.4l2.6-2.5 4.6 3.4c.6.4 1.4.1 1.6-.6L22.9 4.6c.2-.9-.6-1.6-1.4-1.3zM9.4 13.6l8.2-6.3c.2-.1.4.1.2.3l-6.6 6.8-.3 3.1z"/>
+      </symbol>
+      <symbol id="i-youtube" viewBox="0 0 24 24">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      </symbol>
+      <!-- Новая иконка для клана -->
+      <symbol id="i-shield" viewBox="0 0 24 24">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="header-wrapper">
+    <nav class="glass" aria-label="Основная навигация">
+      <a href="#top" class="logo-nav">
+        <svg class="i" style="stroke: #fff;"><use href="#i-music"/></svg>
+        <span>Music</span>
+      </a>
+      <a href="#top" class="active" data-spy="top"><svg class="i"><use href="#i-home"/></svg>Главная</a>
+      <a href="#clan" data-spy="clan"><svg class="i"><use href="#i-shield"/></svg>Мой клан</a>
+      <a href="#friends" data-spy="friends"><svg class="i"><use href="#i-people"/></svg>Друзья</a>
+    </nav>
+  </div>
+
+  <main id="top">
+    <section class="hero">
+      <h1>Привет, я&nbsp;— Musiciant</h1>
+      <p>Разрабатываю PrimeCore для Minecraft</p>
+    </section>
+
+    <div class="cards-container">
+      <section class="card glass">
+        <div class="card-header"><svg class="i"><use href="#i-person"/></svg><h2>Обо мне</h2></div>
+        <p>Я Musiciant — разработчик чит-клиента PrimeCore. Улучшаю его, слушаю ваши отзывы и стараюсь делать лучше.</p>
+        
+        <div class="socials-block">
+          <div class="socials-title">Соц. сети</div>
+          <div class="social-links">
+            <a href="https://discord.com/users/emperor.music" target="_blank" class="social-btn">
+              <svg class="i"><use href="#i-discord"/></svg><span>emperor.music</span>
+            </a>
+            <a href="https://t.me/badjavacode" target="_blank" class="social-btn">
+              <svg class="i"><use href="#i-telegram"/></svg><span>badjavacode</span>
+            </a>
+            <a href="https://youtube.com/@musiciant11" target="_blank" class="social-btn">
+              <svg class="i"><use href="#i-youtube"/></svg><span>musiciant11</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card glass">
+        <div class="card-header"><svg class="i"><use href="#i-cube"/></svg><h2>PrimeCore</h2></div>
+        <p>Мощный чит-клиент для Minecraft на Fabric 26.2, созданный для комфортной игры и стабильной работы.</p>
+        
+        <ul class="features-list">
+          <li><svg class="i"><use href="#i-check"/></svg> Обход античитов</li>
+          <li><svg class="i"><use href="#i-check"/></svg> Высокий FPS и оптимизация</li>
+          <li><svg class="i"><use href="#i-check"/></svg> Удобный интерфейс (ClickGUI)</li>
+          <li><svg class="i"><use href="#i-check"/></svg> Регулярные обновления</li>
+        </ul>
+        
+        <div class="version-badge">Версия 26.2 • Fabric</div>
+      </section>
+
+      <!-- НОВАЯ КАРТОЧКА "МОЙ КЛАН" -->
+      <section class="card glass wide" id="clan">
+        <div class="card-header"><svg class="i"><use href="#i-shield"/></svg><h2>Мой клан</h2></div>
+        <div class="clan-desc">
+          <p><strong>Гаденыши</strong> — лучший клан по КС 2, где заливают всякие конфиги для читов КС2 или сами читы. Их самый главный владелец — <strong>ppfameqq (Mefedik)</strong>. Так же у нас есть свой тэг в Дискорде <strong>"гады"</strong> — если вы его поставите, вы получите уникальную роль.</p>
+        </div>
+        <a href="https://discord.gg/8RuPhYTQD" target="_blank" class="clan-link">
+          <svg class="i" style="stroke: currentColor; width: 20px; height: 20px;"><use href="#i-discord"/></svg>
+          Присоединиться к Discord
+        </a>
+      </section>
+
+      <section class="card glass wide" id="friends">
+        <div class="card-header"><svg class="i"><use href="#i-people"/></svg><h2>Друзья</h2></div>
+        <div class="friends-list">
+          <div class="friend-item"><span class="friend-avatar">s</span><span>solar.ru</span></div>
+          <div class="friend-item"><span class="friend-avatar">s</span><span>stul0623</span></div>
+          <div class="friend-item"><span class="friend-avatar">s</span><span>shopnik</span></div>
+          <div class="friend-item"><span class="friend-avatar">t</span><span>tri3ix</span></div>
+          <div class="friend-item"><span class="friend-avatar">g</span><span>gordey1337pivo</span></div>
+          <div class="friend-item"><span class="friend-avatar">b</span><span>byrger100_24164</span></div>
+          <div class="friend-item"><span class="friend-avatar">s</span><span>skeetalpha.cc</span></div>
+          <div class="friend-item"><span class="friend-avatar">c</span><span>cumxz</span></div>
+          <div class="friend-item"><span class="friend-avatar">p</span><span>ppfameqq</span></div> <!-- Новый друг -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="glass">
+    <strong>Musiciant</strong>
+    <div class="footer-socials">
+      <a href="https://discord.com/users/emperor.music" target="_blank" aria-label="Discord"><svg><use href="#i-discord"/></svg></a>
+      <a href="https://t.me/badjavacode" target="_blank" aria-label="Telegram"><svg><use href="#i-telegram"/></svg></a>
+      <a href="https://youtube.com/@musiciant11" target="_blank" aria-label="YouTube"><svg><use href="#i-youtube"/></svg></a>
+    </div>
+  </footer>
+
+  <!-- 3. СКРИПТ ДЛЯ МЕТЕОРИТОВ (Canvas 2D) -->
+  <script>
+    (function() {
+      const canvas = document.getElementById('meteor-canvas');
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      let meteors = [];
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      class Meteor {
+        constructor() {
+          this.reset(true);
+        }
+        reset(randomY = false) {
+          this.x = Math.random() * width * 1.5 - width * 0.2;
+          this.y = randomY ? Math.random() * -height : -100;
+          this.length = Math.random() * 150 + 100;
+          this.speed = Math.random() * 8 + 6;
+          this.angle = Math.PI / 4 + (Math.random() * 0.2 - 0.1);
+          this.opacity = Math.random() * 0.5 + 0.5;
+          this.size = Math.random() * 2 + 1;
+        }
+        update() {
+          this.x += Math.cos(this.angle) * this.speed;
+          this.y += Math.sin(this.angle) * this.speed;
+          if (this.y > height + 100 || this.x < -100) this.reset();
+        }
+        draw() {
+          ctx.beginPath();
+          let headX = this.x, headY = this.y;
+          let tailX = this.x - Math.cos(this.angle) * this.length;
+          let tailY = this.y - Math.sin(this.angle) * this.length;
+          let grad = ctx.createLinearGradient(headX, headY, tailX, tailY);
+          grad.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
+          grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = this.size;
+          ctx.lineCap = 'round';
+          ctx.moveTo(headX, headY);
+          ctx.lineTo(tailX, tailY);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(headX, headY, this.size * 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      for (let i = 0; i < 25; i++) meteors.push(new Meteor());
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        meteors.forEach(m => { m.update(); m.draw(); });
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+  </script>
+
+  <!-- 4. КОМПОНЕНТ PATTERNWAVES (React + WebGL) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/ogl@1.0.11/dist/ogl.umd.js"></script>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useRef } = React;
+    const { Renderer, Program, Mesh, Triangle, RenderTarget, Texture } = OGL;
+
+    const SURFACE_PRESETS = {
+      silk: { pattern: 'dot', wave: 'silk', spacing: 9, markSize: 0.95, depth: 0.95, light: 0, shine: 0.8, contrast: 1.2, speed: 0.35, scale: 1, direction: 20 },
+      ocean: { pattern: 'dot', wave: 'swell', spacing: 10, markSize: 0.9, depth: 0.42, light: 0, shine: 1, contrast: 1.2, speed: 0.5, scale: 1, direction: 100 },
+      pond: { pattern: 'dot', wave: 'ripple', spacing: 10, markSize: 0.9, depth: 0.55, light: 0, shine: 1.2, contrast: 1.2, speed: 0.5, scale: 1, direction: 35 },
+      lines: { pattern: 'line', wave: 'silk', spacing: 12, markSize: 0.42, depth: 0.9, light: 0, shine: 0.6, contrast: 1.2, speed: 0.3, scale: 1, direction: 20 },
+      terminal: { pattern: 'glyph', wave: 'ripple', spacing: 13, markSize: 0.95, depth: 0.75, light: 0, shine: 0.9, contrast: 1.4, speed: 0.3, scale: 1.1, direction: 200 },
+      mesh: { pattern: 'plus', wave: 'silk', spacing: 14, markSize: 0.8, depth: 0.95, light: 0, shine: 1, contrast: 1.45, speed: 0.4, scale: 1.1, direction: 325 }
+    };
+
+    const PATTERNS = { dot: 0, square: 1, plus: 2, line: 3, glyph: 4 };
+    const WAVES = { silk: 0, swell: 1, ripple: 2 };
+    const FADES = { none: 0, edges: 1, center: 2, bottom: 3, top: 4 };
+    const DEFAULT_CHARACTERS = '.:-=+*#%@';
+    const GLYPH_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    const ATLAS_TILE = 128;
+    const WAVE_UNIT = 520;
+    const RIPPLE_CELL = 8;
+    const RIPPLE_RATE = 60;
+    const PIXEL_BUDGET = 4.5e6;
+    const INTRO_SECONDS = 2;
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const luminance = rgba => 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2];
+
+    const parseColor = (value, fallback) => {
+      try {
+        const ctx = document.createElement('canvas').getContext('2d');
+        if (!ctx) return fallback;
+        ctx.fillStyle = '#000000'; ctx.fillStyle = value;
+        const resolved = ctx.fillStyle;
+        if (resolved.startsWith('#')) {
+          const n = parseInt(resolved.slice(1), 16);
+          return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1];
+        }
+        const parts = resolved.match(/[\d.]+/g);
+        if (!parts || parts.length < 3) return fallback;
+        return [Number(parts[0]) / 255, Number(parts[1]) / 255, Number(parts[2]) / 255, parts[3] ? Number(parts[3]) : 1];
+      } catch { return fallback; }
+    };
+
+    const buildAtlas = characters => {
+      const glyphs = Array.from(characters && characters.length ? characters : DEFAULT_CHARACTERS);
+      const columns = Math.ceil(Math.sqrt(glyphs.length));
+      const lines = Math.ceil(glyphs.length / columns);
+      const canvas = document.createElement('canvas');
+      canvas.width = columns * ATLAS_TILE; canvas.height = lines * ATLAS_TILE;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `500 ${Math.round(ATLAS_TILE * 0.86)}px ${GLYPH_FONT}`;
+      glyphs.forEach((glyph, index) => {
+        const x = (index % columns) * ATLAS_TILE + ATLAS_TILE / 2;
+        const y = Math.floor(index / columns) * ATLAS_TILE + ATLAS_TILE / 2;
+        ctx.fillText(glyph, x, y);
+      });
+      return { canvas, columns, lines, count: glyphs.length };
+    };
+
+    const passVertex = `#version 300 es
+    in vec2 position;
+    void main() { gl_Position = vec4(position, 0.0, 1.0); }
+    `;
+
+    const fieldFragment = `#version 300 es
+    precision highp float; precision highp int;
+    uniform vec2 uSize; uniform float uDpr; uniform vec2 uOrigin; uniform vec2 uPitch;
+    uniform int uWave; uniform float uTime; uniform float uUnit; uniform vec2 uHeading;
+    uniform float uAmp; uniform float uDepth; uniform vec3 uLight; uniform float uShine;
+    uniform float uContrast; uniform float uInk; uniform float uOpacity; uniform int uFade;
+    uniform float uFadeSize; uniform float uAppear; uniform sampler2D tRipple; uniform float uRipple;
+    out vec4 fragColor;
+    const float FOLDS = 5.5;
+    uvec3 scramble(uvec3 v) { v = v * 1664525u + 1013904223u; v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y; v ^= v >> 16u; v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y; return v; }
+    vec3 lattice(vec3 corner) { uvec3 h = scramble(uvec3(ivec3(corner) + 4096)); return vec3(h & 65535u) / 32767.5 - 1.0; }
+    float gradientNoise(vec3 p) {
+      vec3 i = floor(p); vec3 f = p - i; vec3 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+      float n000 = dot(lattice(i), f); float n100 = dot(lattice(i + vec3(1.0, 0.0, 0.0)), f - vec3(1.0, 0.0, 0.0));
+      float n010 = dot(lattice(i + vec3(0.0, 1.0, 0.0)), f - vec3(0.0, 1.0, 0.0)); float n110 = dot(lattice(i + vec3(1.0, 1.0, 0.0)), f - vec3(1.0, 1.0, 0.0));
+      float n001 = dot(lattice(i + vec3(0.0, 0.0, 1.0)), f - vec3(0.0, 0.0, 1.0)); float n101 = dot(lattice(i + vec3(1.0, 0.0, 1.0)), f - vec3(1.0, 0.0, 1.0));
+      float n011 = dot(lattice(i + vec3(0.0, 1.0, 1.0)), f - vec3(0.0, 1.0, 1.0)); float n111 = dot(lattice(i + vec3(1.0, 1.0, 1.0)), f - vec3(1.0, 1.0, 1.0));
+      return mix(mix(mix(n000, n100, u.x), mix(n010, n110, u.x), u.y), mix(mix(n001, n101, u.x), mix(n011, n111, u.x), u.y), u.z);
+    }
+    vec2 turn(vec2 v, float angle) { float c = cos(angle); float s = sin(angle); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
+    float surface(vec2 p, float t) {
+      if (uWave == 0) {
+        vec2 side = vec2(-uHeading.y, uHeading.x); float u = dot(p, uHeading); float v = dot(p, side);
+        float bend = gradientNoise(vec3(v * 0.85, u * 0.3, t * 0.05)) * 1.7 + 0.4 * sin(v * 1.6 + t * 0.2);
+        float phase = u * FOLDS + bend - t * 0.45;
+        float swell = 0.6 + 0.4 * gradientNoise(vec3(u * 0.55 + 3.0, v * 0.45, t * 0.04));
+        float fold = sin(phase) + 0.32 * sin(2.0 * phase + 1.3);
+        float ripple = 0.16 * sin(u * FOLDS * 2.5 + bend * 1.9 - t * 0.9 + 2.1);
+        return (fold + ripple) * swell;
+      }
+      if (uWave == 1) {
+        float bend = gradientNoise(vec3(p * 0.6, t * 0.05)) * 0.6;
+        float phase = dot(p, uHeading) * 15.0 + bend * 2.2 - t * 1.4;
+        float swell = sin(phase) + 0.3 * sin(2.0 * phase - 0.8);
+        float roll = 0.75 + 0.25 * gradientNoise(vec3(p * 0.9 + 11.0, t * 0.05));
+        return 0.8 * swell * roll;
+      }
+      float r = length(p + uHeading * 1.2);
+      float bend = gradientNoise(vec3(p * 1.2, t * 0.05)) * 0.1;
+      return sin((r + bend) * 9.0 - t * 1.8) * (0.45 + 0.55 * exp(-(r - 0.6) * 0.8));
+    }
+    float heightAt(vec2 css) { float h = surface((css - 0.5 * uSize) / uUnit, uTime) * uAmp; if (uRipple > 0.0) h += texture(tRipple, css / uSize).r * uRipple; return h; }
+    void main() {
+      vec2 cell = floor(gl_FragCoord.xy); vec2 center = uOrigin + (cell + 0.5) * uPitch; vec2 css = center / uDpr; vec2 uv = css / uSize;
+      float e = max(uPitch.y / uDpr, 4.0); float h = heightAt(css);
+      float hx = (heightAt(css + vec2(e, 0.0)) - heightAt(css - vec2(e, 0.0))) / (2.0 * e);
+      float hy = (heightAt(css + vec2(0.0, e)) - heightAt(css - vec2(0.0, e))) / (2.0 * e);
+      vec2 grad = vec2(hx, hy) * uUnit * uDepth * 0.4; vec3 n = normalize(vec3(-grad, 1.0));
+      float diffuse = clamp(dot(n, uLight), 0.0, 1.0); vec3 halfway = normalize(uLight + vec3(0.0, 0.0, 1.0));
+      float spec = pow(clamp(dot(n, halfway), 0.0, 1.0), 160.0) * uShine * 1.15;
+      float hollow = 0.7 + 0.3 * clamp(h * 0.5 + 0.5, 0.0, 1.0); float tone = clamp(diffuse * hollow * 0.78 + spec, 0.0, 1.0);
+      tone = clamp((tone - 0.42) * uContrast + 0.42, 0.0, 1.0);
+      float level = uInk > 0.5 ? pow(clamp(1.0 - tone / 0.46, 0.0, 1.0), 2.4) * 0.72 : pow(tone, 2.2);
+      float emphasis = uInk > 0.5 ? smoothstep(0.55, 0.95, level) : clamp(spec * 1.6, 0.0, 1.0);
+      float fade = 1.0; vec2 c = uv * 2.0 - 1.0;
+      if (uFade == 1) fade = 1.0 - smoothstep(1.0 - uFadeSize, 1.18, length(c));
+      else if (uFade == 2) fade = mix(0.05, 1.0, smoothstep(0.08, 0.08 + uFadeSize, length(c * vec2(1.0, 1.35))));
+      else if (uFade == 3) fade = smoothstep(0.0, uFadeSize, uv.y);
+      else if (uFade == 4) fade = smoothstep(0.0, uFadeSize, 1.0 - uv.y);
+      float reach = length(css - 0.5 * uSize) / max(0.5 * length(uSize), 1.0);
+      float appear = smoothstep(reach - 0.05, reach + 0.3, uAppear * 1.35);
+      float alpha = uOpacity * fade * appear * (0.22 + 0.78 * level);
+      float lift = clamp(h * uDepth * 0.42, -0.48, 0.48);
+      fragColor = vec4(level, alpha, emphasis, lift + 0.5);
+    }
+    `;
+
+    const rippleFragment = `#version 300 es
+    precision highp float;
+    uniform sampler2D tState; uniform vec2 uTexel; uniform vec2 uSize;
+    uniform vec2 uFrom; uniform vec2 uTo; uniform float uRadius;
+    uniform float uImpulse; uniform float uDamping; out vec4 fragColor;
+    void main() {
+      vec2 uv = gl_FragCoord.xy * uTexel; vec2 state = texture(tState, uv).rg;
+      float left = texture(tState, uv - vec2(uTexel.x, 0.0)).r; float right = texture(tState, uv + vec2(uTexel.x, 0.0)).r;
+      float below = texture(tState, uv - vec2(0.0, uTexel.y)).r; float above = texture(tState, uv + vec2(0.0, uTexel.y)).r;
+      float next = ((left + right + below + above) * 0.5 - state.g) * uDamping;
+      vec2 p = uv * uSize; vec2 segment = uTo - uFrom;
+      float along = clamp(dot(p - uFrom, segment) / max(dot(segment, segment), 1e-4), 0.0, 1.0);
+      float d = length(p - uFrom - segment * along) / uRadius;
+      next -= uImpulse * exp(-d * d * 2.0);
+      fragColor = vec4(next, state.r, 0.0, 1.0);
+    }
+    `;
+
+    const markFragment = `#version 300 es
+    precision highp float; precision highp int;
+    uniform sampler2D tField; uniform sampler2D tAtlas;
+    uniform vec2 uOrigin; uniform vec2 uPitch; uniform vec2 uGrid;
+    uniform int uPattern; uniform float uMarkSize; uniform float uStroke;
+    uniform vec3 uColor; uniform vec3 uAccent; uniform vec4 uBackground;
+    uniform vec3 uAtlas; out vec4 fragColor;
+    float box(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+    float coverage(vec2 local, float level) {
+      float span = uPitch.y * uMarkSize; float area = max(sqrt(level), 0.14);
+      if (uPattern == 0) return clamp(0.5 - (length(local) - 0.5 * span * area), 0.0, 1.0);
+      if (uPattern == 1) { float extent = 0.5 * span * area; return clamp(0.5 - box(local, vec2(extent), extent * 0.3), 0.0, 1.0); }
+      if (uPattern == 2) { float arm = 0.5 * span * mix(0.3, 1.0, level); float width = 0.5 * uStroke; return clamp(0.5 - min(box(local, vec2(arm, width), width), box(local, vec2(width, arm), width)), 0.0, 1.0); }
+      if (uAtlas.z < 1.0) return 0.0;
+      vec2 g = local / span + 0.5;
+      if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) return 0.0;
+      float index = min(floor(level * uAtlas.z), uAtlas.z - 1.0);
+      vec2 tile = vec2(mod(index, uAtlas.x), floor(index / uAtlas.x));
+      vec2 atlasUv = (tile + vec2(g.x, 1.0 - g.y)) / uAtlas.xy;
+      vec2 texel = 1.0 / (span * uAtlas.xy);
+      return textureGrad(tAtlas, atlasUv, vec2(texel.x, 0.0), vec2(0.0, texel.y)).a;
+    }
+    vec4 lineInk(vec2 rel) {
+      float fx = rel.x / uPitch.x - 0.5; float c0 = clamp(floor(fx), 0.0, uGrid.x - 1.0); float c1 = min(c0 + 1.0, uGrid.x - 1.0);
+      float t = clamp(fx - c0, 0.0, 1.0); float row = floor(rel.y / uPitch.y); vec4 ink = vec4(0.0);
+      for (int k = -1; k <= 1; k++) {
+        float cy = row + float(k); if (cy < 0.0 || cy >= uGrid.y) continue;
+        vec4 a = texelFetch(tField, ivec2(int(c0), int(cy)), 0); vec4 b = texelFetch(tField, ivec2(int(c1), int(cy)), 0);
+        vec4 f = mix(a, b, t); if (f.g < 0.002) continue;
+        float y = (cy + 0.5 + f.a - 0.5) * uPitch.y; float slope = (b.a - a.a) * uPitch.y / uPitch.x;
+        float thickness = max(uStroke, uPitch.y * uMarkSize * f.r); float d = abs(rel.y - y) / sqrt(1.0 + slope * slope) - 0.5 * thickness;
+        float alpha = clamp(0.5 - d, 0.0, 1.0) * f.g;
+        if (alpha > ink.a) ink = vec4(mix(uColor, uAccent, f.b) * alpha, alpha);
+      }
+      return ink;
+    }
+    void main() {
+      vec2 rel = gl_FragCoord.xy - uOrigin; vec4 background = vec4(uBackground.rgb * uBackground.a, uBackground.a); vec4 ink = vec4(0.0);
+      if (uPattern == 3) ink = lineInk(rel);
+      else {
+        float cx = floor(rel.x / uPitch.x); float row = floor(rel.y / uPitch.y);
+        if (cx >= 0.0 && cx < uGrid.x) {
+          for (int k = -1; k <= 1; k++) {
+            float cy = row + float(k); if (cy < 0.0 || cy >= uGrid.y) continue;
+            vec4 f = texelFetch(tField, ivec2(int(cx), int(cy)), 0); if (f.g < 0.002) continue;
+            vec2 center = (vec2(cx, cy) + 0.5) * uPitch + vec2(0.0, (f.a - 0.5) * uPitch.y);
+            float alpha = coverage(rel - center, f.r) * f.g;
+            if (alpha > ink.a) ink = vec4(mix(uColor, uAccent, f.b) * alpha, alpha);
+          }
+        }
+      }
+      fragColor = ink + background * (1.0 - ink.a);
+    }
+    `;
+
+    const PatternWaves = ({
+      preset = 'silk', pattern, wave, spacing, markSize, depth, light, shine, contrast,
+      speed, scale, direction, color = '#ffffff', backgroundColor = '#000000',
+      opacity = 1, fade = 'edges', fadeSize = 0.5, characters = DEFAULT_CHARACTERS,
+      interactive = true, cursorSize = 50, cursorStrength = 0.6, intro = true,
+      paused = false, className = '', style
+    }) => {
+      const containerRef = useRef(null); const settingsRef = useRef(null); const wakeRef = useRef(null);
+      const base = SURFACE_PRESETS[preset] || SURFACE_PRESETS.silk;
+      const pick = (value, key) => (value === undefined || value === null ? base[key] : value);
+      const colors = useMemo(() => ({
+        color: parseColor(color, [1, 1, 1, 1]), background: parseColor(backgroundColor, [0, 0, 0, 1])
+      }), [color, backgroundColor]);
+
+      useEffect(() => {
+        settingsRef.current = {
+          ...colors, pattern: pick(pattern, 'pattern'), wave: pick(wave, 'wave'), spacing: pick(spacing, 'spacing'),
+          markSize: pick(markSize, 'markSize'), depth: pick(depth, 'depth'), light: pick(light, 'light'),
+          shine: pick(shine, 'shine'), contrast: pick(contrast, 'contrast'), speed: pick(speed, 'speed'),
+          scale: pick(scale, 'scale'), direction: pick(direction, 'direction'), opacity, fade, fadeSize, characters,
+          interactive, cursorSize, cursorStrength, intro, paused
+        };
+        wakeRef.current?.();
+      });
+
+      useEffect(() => {
+        const container = containerRef.current; if (!container) return undefined;
+        const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: false, depth: false });
+        const gl = renderer.gl;
+        if (!renderer.isWebgl2) { gl.getExtension('WEBGL_lose_context')?.loseContext(); return undefined; }
+        gl.clearColor(0, 0, 0, 0);
+        const canvas = gl.canvas; canvas.style.display = 'block'; canvas.style.width = '100%'; canvas.style.height = '100%';
+        canvas.setAttribute('aria-hidden', 'true'); container.appendChild(canvas);
+        const geometry = new Triangle(gl); const blank = new Texture(gl);
+        const floatTargets = !!gl.getExtension('EXT_color_buffer_float');
+        const dispose = target => { gl.deleteFramebuffer(target.buffer); gl.deleteTexture(target.texture.texture); };
+        const fieldTargetFor = (w, h) => new RenderTarget(gl, { width: w, height: h, depth: false, minFilter: gl.NEAREST, magFilter: gl.NEAREST });
+        const rippleTargetFor = (w, h) => new RenderTarget(gl, { width: w, height: h, depth: false, type: gl.HALF_FLOAT, format: gl.RGBA, internalFormat: gl.RGBA16F, minFilter: gl.LINEAR, magFilter: gl.LINEAR });
+        let fieldTarget = fieldTargetFor(1, 1); let ripple = null;
+        const atlasTexture = new Texture(gl, { generateMipmaps: true, minFilter: gl.LINEAR_MIPMAP_LINEAR, magFilter: gl.LINEAR, flipY: false });
+        const fieldUniforms = {
+          uSize: { value: [1, 1] }, uDpr: { value: 1 }, uOrigin: { value: [0, 0] }, uPitch: { value: [1, 1] },
+          uWave: { value: 0 }, uTime: { value: 0 }, uUnit: { value: WAVE_UNIT }, uHeading: { value: [1, 0] },
+          uAmp: { value: 0 }, uDepth: { value: 0.5 }, uLight: { value: [0, 0, 1] }, uShine: { value: 0.8 },
+          uContrast: { value: 1 }, uInk: { value: 0 }, uOpacity: { value: 1 }, uFade: { value: 0 },
+          uFadeSize: { value: 0.5 }, uAppear: { value: 0 }, tRipple: { value: blank }, uRipple: { value: 0 }
+        };
+        const fieldMesh = new Mesh(gl, { geometry, program: new Program(gl, { vertex: passVertex, fragment: fieldFragment, uniforms: fieldUniforms, depthTest: false, depthWrite: false }) });
+        const rippleUniforms = { tState: { value: blank }, uTexel: { value: [1, 1] }, uSize: { value: [1, 1] }, uFrom: { value: [0, 0] }, uTo: { value: [0, 0] }, uRadius: { value: 40 }, uImpulse: { value: 0 }, uDamping: { value: 0.975 } };
+        const rippleMesh = new Mesh(gl, { geometry, program: new Program(gl, { vertex: passVertex, fragment: rippleFragment, uniforms: rippleUniforms, depthTest: false, depthWrite: false }) });
+        const markUniforms = { tField: { value: fieldTarget.texture }, tAtlas: { value: atlasTexture }, uOrigin: { value: [0, 0] }, uPitch: { value: [1, 1] }, uGrid: { value: [1, 1] }, uPattern: { value: 0 }, uMarkSize: { value: 0.9 }, uStroke: { value: 2 }, uColor: { value: [1, 1, 1] }, uAccent: { value: [1, 1, 1] }, uBackground: { value: [0, 0, 0, 1] }, uAtlas: { value: [1, 1, 0] } };
+        const markMesh = new Mesh(gl, { geometry, program: new Program(gl, { vertex: passVertex, fragment: markFragment, uniforms: markUniforms, depthTest: false, depthWrite: false }) });
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        let width = 1, height = 1, raf = 0, last = performance.now(), time = 0, introClock = 0, visible = true, alive = true, dirty = true, rippleUntil = 0, rippleLive = false, rippleClock = 0, atlasKey = '';
+        const pointer = { x: 0, y: 0, inside: false, placed: false, lastX: 0, lastY: 0, burst: 0 };
+        const buildRipple = () => { if (!floatTargets) return; const w = clamp(Math.ceil(width / RIPPLE_CELL), 4, 512); const h = clamp(Math.ceil(height / RIPPLE_CELL), 4, 512); if (ripple && ripple.width === w && ripple.height === h) return; if (ripple) { dispose(ripple.read); dispose(ripple.write); } ripple = { width: w, height: h, read: rippleTargetFor(w, h), write: rippleTargetFor(w, h) }; rippleLive = false; };
+        const clearRipple = () => { if (!ripple) return; [ripple.read, ripple.write].forEach(target => { renderer.bindFramebuffer(target); gl.viewport(0, 0, target.width, target.height); gl.clear(gl.COLOR_BUFFER_BIT); }); renderer.bindFramebuffer(); };
+        const refreshAtlas = s => { if (s.characters === atlasKey) return; atlasKey = s.characters; const built = buildAtlas(s.characters); if (!built) return; atlasTexture.image = built.canvas; markUniforms.uAtlas.value = [built.columns, built.lines, built.count]; };
+        let resizePending = false;
+        const applyResize = () => { width = Math.max(1, container.clientWidth); height = Math.max(1, container.clientHeight); renderer.dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (width * height))); renderer.setSize(width, height); buildRipple(); dirty = true; };
+        const resize = () => { resizePending = true; start(); };
+        const stepRipple = (field, s, dt) => {
+          rippleClock = Math.min(rippleClock + dt * RIPPLE_RATE, 4); const strength = clamp(s.cursorStrength, 0, 1);
+          const moved = Math.hypot(pointer.x - pointer.lastX, pointer.y - pointer.lastY);
+          let impulse = (pointer.inside ? Math.min(moved / 14, 1) * 0.35 * strength : 0) + pointer.burst * strength;
+          pointer.burst = 0; rippleUniforms.uTexel.value = [1 / field.width, 1 / field.height]; rippleUniforms.uSize.value = [width, height];
+          rippleUniforms.uFrom.value = [pointer.lastX, height - pointer.lastY]; rippleUniforms.uTo.value = [pointer.x, height - pointer.y];
+          rippleUniforms.uRadius.value = clamp(s.cursorSize, 8, 400);
+          while (rippleClock >= 1) { rippleClock -= 1; rippleUniforms.tState.value = field.read.texture; rippleUniforms.uImpulse.value = impulse; renderer.render({ scene: rippleMesh, target: field.write, clear: false }); const next = field.read; field.read = field.write; field.write = next; impulse = 0; }
+          pointer.lastX = pointer.x; pointer.lastY = pointer.y;
+        };
+        const frame = now => {
+          raf = 0; if (resizePending) { resizePending = false; applyResize(); } if (!alive) return;
+          const s = settingsRef.current; const dt = Math.min(0.05, Math.max(1 / 240, (now - last) / 1000)); last = now; if (!s) return;
+          const moving = !s.paused && !reducedMotion && s.speed !== 0; if (moving) time += dt * s.speed;
+          introClock = s.intro && !reducedMotion ? Math.min(1, introClock + dt / INTRO_SECONDS) : 1;
+          const appear = 1 - Math.pow(1 - clamp(introClock / 0.75, 0, 1), 3); const rise = clamp((introClock - 0.1) / 0.9, 0, 1); const amp = rise * rise * (3 - 2 * rise);
+          const rippling = s.interactive && !reducedMotion && !!ripple && s.cursorStrength > 0;
+          if (rippling && pointer.inside && !pointer.placed) { pointer.lastX = pointer.x; pointer.lastY = pointer.y; pointer.placed = true; }
+          if (rippling && (pointer.inside || pointer.burst > 0)) rippleUntil = now + 5000;
+          const rippleActive = rippling && now < rippleUntil;
+          if (rippleActive && ripple) { stepRipple(ripple, s, dt); rippleLive = true; } else if (rippleLive) { clearRipple(); rippleLive = false; }
+          const patternIndex = PATTERNS[s.pattern] ?? 0; if (patternIndex === 4) refreshAtlas(s);
+          const canvasW = gl.canvas.width, canvasH = gl.canvas.height; const dpr = canvasW / width;
+          const pitchY = Math.max(4, Math.round(clamp(s.spacing, 4, 120) * dpr)); const pitchX = patternIndex === 3 ? Math.max(2, Math.round(pitchY / 4)) : pitchY;
+          const cols = Math.min(4096, Math.ceil(canvasW / pitchX) + 1); const rows = Math.min(4096, Math.ceil(canvasH / pitchY) + 2);
+          const origin = [Math.floor((canvasW - cols * pitchX) / 2), Math.floor((canvasH - rows * pitchY) / 2)];
+          if (fieldTarget.width !== cols || fieldTarget.height !== rows) { dispose(fieldTarget); fieldTarget = fieldTargetFor(cols, rows); markUniforms.tField.value = fieldTarget.texture; }
+          const heading = (s.direction * Math.PI) / 180; const lightAngle = ((s.direction + 180 + clamp(s.light, -90, 90)) * Math.PI) / 180;
+          const background = s.background; const ink = background[3] > 0.02 ? luminance(s.color) < luminance(background) : luminance(s.color) < 0.5;
+          fieldUniforms.uSize.value = [width, height]; fieldUniforms.uDpr.value = dpr; fieldUniforms.uOrigin.value = origin; fieldUniforms.uPitch.value = [pitchX, pitchY];
+          fieldUniforms.uWave.value = WAVES[s.wave] ?? 0; fieldUniforms.uTime.value = time; fieldUniforms.uUnit.value = WAVE_UNIT * clamp(s.scale, 0.2, 5);
+          fieldUniforms.uHeading.value = [Math.cos(heading), Math.sin(heading)]; fieldUniforms.uAmp.value = amp; fieldUniforms.uDepth.value = clamp(s.depth, 0, 1.5);
+          fieldUniforms.uLight.value = [Math.cos(lightAngle) * 0.78, Math.sin(lightAngle) * 0.78, 0.62]; fieldUniforms.uShine.value = clamp(s.shine, 0, 2);
+          fieldUniforms.uContrast.value = clamp(s.contrast, 0.3, 3); fieldUniforms.uInk.value = ink ? 1 : 0; fieldUniforms.uOpacity.value = clamp(s.opacity, 0, 1);
+          fieldUniforms.uFade.value = FADES[s.fade] ?? 0; fieldUniforms.uFadeSize.value = clamp(s.fadeSize, 0.05, 1); fieldUniforms.uAppear.value = appear;
+          fieldUniforms.tRipple.value = ripple && rippleLive ? ripple.read.texture : blank; fieldUniforms.uRipple.value = rippleLive ? 0.32 : 0;
+          renderer.render({ scene: fieldMesh, target: fieldTarget });
+          markUniforms.uOrigin.value = origin; markUniforms.uPitch.value = [pitchX, pitchY]; markUniforms.uGrid.value = [cols, rows]; markUniforms.uPattern.value = patternIndex;
+          markUniforms.uMarkSize.value = clamp(s.markSize, 0.05, 1); markUniforms.uStroke.value = patternIndex === 3 ? 0.9 * dpr : Math.max(1.1 * dpr, pitchY * 0.08);
+          const tint = ink ? 0 : 1; const blend = ink ? 0.35 : 0.55;
+          markUniforms.uColor.value = s.color.slice(0, 3); markUniforms.uAccent.value = s.color.slice(0, 3).map(channel => channel + (tint - channel) * blend);
+          markUniforms.uBackground.value = background; renderer.render({ scene: markMesh }); dirty = false;
+          if (visible && (moving || introClock < 1 || rippleActive || dirty)) raf = requestAnimationFrame(frame);
+        };
+        const start = () => { if (raf || !visible || !alive) return; last = performance.now(); raf = requestAnimationFrame(frame); };
+        const locate = e => { const rect = container.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top; return { x, y, inside: x >= 0 && y >= 0 && x <= rect.width && y <= rect.height }; };
+        const onPointerMove = e => { const spot = locate(e); pointer.x = spot.x; pointer.y = spot.y; if (spot.inside !== pointer.inside) pointer.placed = false; pointer.inside = spot.inside; if (spot.inside) start(); };
+        const onPointerDown = e => { const spot = locate(e); if (!spot.inside) return; pointer.x = spot.x; pointer.y = spot.y; if (!pointer.inside) { pointer.lastX = spot.x; pointer.lastY = spot.y; } pointer.burst = 1.2; start(); };
+        const onPointerLeave = () => { pointer.inside = false; pointer.placed = false; start(); };
+        const onPointerOut = e => { if (!e.relatedTarget) onPointerLeave(); };
+        const onPointerUp = e => { if (e.pointerType === 'touch') onPointerLeave(); };
+        const onVisibility = () => { if (!document.hidden) start(); };
+        window.addEventListener('pointermove', onPointerMove, { passive: true }); window.addEventListener('pointerdown', onPointerDown, { passive: true }); window.addEventListener('pointerout', onPointerOut, { passive: true }); window.addEventListener('pointerup', onPointerUp, { passive: true }); window.addEventListener('blur', onPointerLeave); document.addEventListener('visibilitychange', onVisibility);
+        const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(container);
+        const intersectionObserver = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; start(); }); intersectionObserver.observe(container);
+        wakeRef.current = () => { dirty = true; start(); }; resize();
+        return () => {
+          alive = false; visible = false; cancelAnimationFrame(raf); resizeObserver.disconnect(); intersectionObserver.disconnect();
+          window.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerdown', onPointerDown); window.removeEventListener('pointerout', onPointerOut); window.removeEventListener('pointerup', onPointerUp); window.removeEventListener('blur', onPointerLeave); document.removeEventListener('visibilitychange', onVisibility); wakeRef.current = null;
+          if (ripple) { dispose(ripple.read); dispose(ripple.write); } dispose(fieldTarget); gl.deleteTexture(atlasTexture.texture); gl.getExtension('WEBGL_lose_context')?.loseContext(); if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+        };
+      }, []);
+
+      return <div ref={containerRef} className={`pattern-waves ${className}`.trim()} style={style} />;
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('webgl-bg-container'));
+    root.render(
+      <PatternWaves
+        preset="ocean"
+        color="#ffffff"
+        backgroundColor="transparent"
+        opacity={0.4}
+        fade="edges"
+        fadeSize={0.4}
+        interactive={true}
+        cursorSize={50}
+        cursorStrength={0.6}
+      />
+    );
+  </script>
+
+  <!-- 5. СКРИПТ ДЛЯ НАВИГАЦИИ -->
+  <script>
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    (function () {
+      var links = document.querySelectorAll('nav a[data-spy]');
+      var el = document.getElementById('friends');
+      var clanEl = document.getElementById('clan');
+      if (!el || !('IntersectionObserver' in window)) return;
+      
+      // Настраиваем два обсервера для "Друзья" и "Клан"
+      new IntersectionObserver(function (e) {
+        var id = e[0].isIntersecting ? 'friends' : 'top';
+        links.forEach(function (a) { a.classList.toggle('active', a.dataset.spy === id); });
+      }, { rootMargin: '-45% 0px -45% 0px' }).observe(el);
+
+      if (clanEl) {
+        new IntersectionObserver(function (e) {
+          if (e[0].isIntersecting) {
+            links.forEach(function (a) { a.classList.toggle('active', a.dataset.spy === 'clan'); });
+          }
+        }, { rootMargin: '-45% 0px -45% 0px' }).observe(clanEl);
+      }
+    })();
+  </script>
+</body>
+</html>
