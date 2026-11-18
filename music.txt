@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music</title>
+    <style>
+        /* Базовые стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            /* bg.jpg */
+            background-color: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- ЖИДКАЯ ПАНЕЛЬ СВЕРХУ --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            /* Эффект жидкого стекла */
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Чёрно-белая иконка ноты (SVG) */
+        .icon-note {
+            width: 24px;
+            height: 24px;
+            fill: #ffffff;
+        }
+
+        /* Навигация */
+        nav {
+            display: flex;
+            gap: 35px;
+        }
+
+        nav a {
+            color: #a0a0a0;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 700; /* Жирный шрифт */
+            transition: color 0.3s;
+        }
+
+        nav a:hover, nav a.active {
+            color: #ffffff;
+        }
+
+        /* Главный блок с приветствием */
+        .hero {
+            text-align: center;
+            padding: 80px 20px 60px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 800;
+            font-style: italic;
+            letter-spacing: 2px;
+            text-shadow: 0 0 30px rgba(255,255,255,0.15);
+            margin-bottom: 20px;
+        }
+
+        .hero .arrow-down {
+            font-size: 24px;
+            opacity: 0.5;
+            margin-top: 30px;
+            color: #fff;
+        }
+
+        /* Сетка карточек */
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 0 40px 60px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .card {
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Чёрно-белые иконки в карточках */
+        .card-header .icon svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: #ffffff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            display: block;
+        }
+
+        .card p {
+            color: #b0b0b0;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        /* Список друзей */
+        .friends-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+
+        .friend-avatar {
+            width: 28px;
+            height: 28px;
+            background: #333;
+            border-radius: 4px;
+        }
+
+        /* Подвал */
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            color: #666;
+            font-size: 13px;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .footer-center {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .footer-center span {
+            font-weight: 600;
+            color: #888;
+        }
+
+        .footer-socials {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Чёрно-белые иконки соцсетей */
+        .footer-socials a svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: #666;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s;
+        }
+
+        .footer-socials a:hover svg {
+            stroke: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Жидкая шапка -->
+    <header>
+        <div class="logo-area">
+            <!-- Чёрно-белая нота -->
+            <svg class="icon-note" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18V5l12-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+                <circle cx="18" cy="16" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+            <span>Musiciant</span>
+        </div>
+        <nav>
+            <a href="#" class="active">Главная</a>
+            <!-- PrimeCore удалён -->
+            <a href="#">Друзья</a>
+            <a href="#">Контакты</a>
+        </nav>
+        <!-- Кнопка скачать удалена -->
+    </header>
+
+    <!-- Центральный блок -->
+    <section class="hero">
+        <h1>Привет, я - Musiciant</h1>
+        <div class="arrow-down">⌄</div>
+    </section>
+
+    <!-- Карточки -->
+    <div class="cards-container">
+        
+        <!-- Обо мне -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">
+                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <span>Обо мне</span>
+            </div>
+            <p>Привет! Я Musiciant — разработчик чит-клиента PrimeCore. Занимаюсь разработкой и улучшением чита, чтобы вы могли играть комфортно и с удовольствием. Вкладываю душу в проект, слушаю ваши отзывы и стараюсь делать лучше.</p>
+        </div>
+
+        <!-- Мой чит -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </span>
+                <span>Мой чит — PrimeCore</span>
+            </div>
+            <p>PrimeCore — это мощный чит-клиент для Minecraft на Fabric 26.2. Обладает стабильным функционалом, высоким FPS и удобным интерфейсом.</p>
+        </div>
+
+        <!-- Мои друзья -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <span>Мои друзья</span>
+            </div>
+            <div class="friends-list">
+                <div class="friend-item"><div class="friend-avatar"></div> solar.ru</div>
+                <div class="friend-item"><div class="friend-avatar"></div> stul0623</div>
+                <div class="friend-item"><div class="friend-avatar"></div> shopnik</div>
+                <div class="friend-item"><div class="friend-avatar"></div> tri3ix</div>
+                <div class="friend-item"><div class="friend-avatar"></div> gordey1337pivo</div>
+                <div class="friend-item"><div class="friend-avatar"></div> byrger100_24164</div>
+                <div class="friend-item"><div class="friend-avatar"></div> skeetalphа.cc</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Подвал -->
+    <footer>
+        <div class="logo-area" style="font-size: 15px;">
+            <svg class="icon-note" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18V5l12-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+                <circle cx="18" cy="16" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+        </div>
+        <div class="footer-center">
+            <span>Musiciant</span>
+            <a href="#" style="color:#666; text-decoration:none;">Разработка читов</a>
+            <a href="#" style="color:#666; text-decoration:none;">Minecraft</a>
+        </div>
+        <div class="footer-socials">
+            <!-- Иконки соцсетей (Discord, Telegram, YouTube) -->
+            <a href="#" aria-label="Discord">
+                <svg viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+            </a>
+            <a href="#" aria-label="Telegram">
+                <svg viewBox="0 0 24 24"><path d="M21.543 2.89a1.5 1.5 0 00-1.64-.13L2.25 11.88a1.5 1.5 0 00.12 2.7l4.9 1.73 2.02 6.07a1.5 1.5 0 002.45.6l2.88-2.77 5.1 3.77a1.5 1.5 0 002.35-.89l3.32-19.17a1.5 1.5 0 00-.74-1.47zm-3.1 4.15l-9.12 8.5-.9 4.68-1.4-4.2 11.42-9.98a.5.5 0 01.63.79z" fill="#666"/></svg>
+            </a>
+            <a href="#" aria-label="YouTube">
+                <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#666"/></svg>
+            </a>
+        </div>
+    </footer>
+
+</body>
+</html>
